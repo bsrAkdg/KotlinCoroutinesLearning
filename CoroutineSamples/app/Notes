@@ -1,0 +1,35 @@
+
+
+** Coroutine is not a Thread, it is like a job. One thread contains multiple coroutines.
+
+     ----------------
+    |    Thread      |
+     ----------------
+    |---> Job #1 (coroutine 1)
+    |---> Job #2 (coroutine 2)
+    |---> Job #3 (coroutine 3)
+
+    These jobs are coroutines and can be done in the same thread. Coroutine means a job.
+
+
+** Kotlin coroutine keyword (can be background thread) : suspend (for example network call, dao methods)
+   Suspend functions are only allowed to be called from a coroutine or another suspend function
+
+** delay(1000) // delays the current coroutine
+   Thread.sleep(1000) // delays the all coroutines on thread
+
+** There are three different CoroutineScopes :  CoroutineScope(IO)
+
+    - IO : Network, Dao transaction
+    - Main : UI transaction
+    - Default : Heavy computational work so like you have to filter a large list
+
+** If you are launch a scope with CoroutineScope(IO) and if you need to access UI components,
+   you should be on the Main thread for access UI components :
+           withContext(Main) {
+               setNewText(input)
+           }
+
+** Suspend functions in the same coroutine scope wait completion together
+
+**

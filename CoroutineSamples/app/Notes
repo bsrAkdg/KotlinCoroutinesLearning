@@ -59,6 +59,15 @@
          But the RESULTS won't be published until the last result is available (in this case that's result2)
 
 
+** Sequential background tasks :
+        val result1 = async {
+
+        }.await()
+
+        val result2 = async {
+          // send result 1
+        }.await()
+
 
 
 

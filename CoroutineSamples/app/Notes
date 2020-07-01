@@ -30,8 +30,6 @@
                setNewText(input)
            }
 
-** Suspend functions in the same coroutine scope wait completion together
-
 ** CompletableJob, extends Job. CompletableJob has 2 functions :
         private lateinit var job: CompletableJob
 
@@ -51,5 +49,16 @@
 
    }
    job.cancel()  // one job canceled
+
+** Execute parallel background task :
+   - Suspend functions in the same coroutine scope wait completion each other
+   - But Jobs in the same coroutine scope don't wait each other, they work the same time
+   - async - await : async() is a blocking call (similar to the job pattern with job.join())
+         1) IF you don't call await(), it does not wait for the result
+         2) Calling await() on both these Deferred values will EXECUTE THEM IN PARALLEL.
+         But the RESULTS won't be published until the last result is available (in this case that's result2)
+
+
+
 
 

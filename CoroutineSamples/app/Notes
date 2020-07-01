@@ -32,4 +32,24 @@
 
 ** Suspend functions in the same coroutine scope wait completion together
 
-**
+** CompletableJob, extends Job. CompletableJob has 2 functions :
+        private lateinit var job: CompletableJob
+
+        job.complete() -> you can cancel the job and check status
+        job.completeExceptionally(exception = Throwable("Canceled job!")) -> you can throw exception when job canceled
+
+** You can call new function your job when canceled or completed :
+
+** val scope = CoroutineScope(IO).launch {
+
+   }
+   scope.cancel() // all jobs canceled
+
+   ---------
+
+   val scope = CoroutineScope(IO + job).launch {
+
+   }
+   job.cancel()  // one job canceled
+
+

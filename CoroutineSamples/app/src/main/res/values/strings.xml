@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">CoroutineSamples</string>
     <string name="click">Click</string>
+    <string name="start_job">Start a Job!</string>
 </resources>

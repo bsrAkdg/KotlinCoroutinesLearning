@@ -68,6 +68,15 @@
           // send result 1
         }.await()
 
+**  If you work below first code on onCreate :
 
+       // UI Thread is completely blocked, this is a thread
+    -> Thread.sleep(3000)
+
+       // UI Thread is not blocked, this is a job on the thread.
+    -> CoroutineScope(Main).launch {
+           println("Current thread : ${Thread.currentThread().name}")
+           delay(3000)
+       }
 
 

@@ -85,3 +85,6 @@
 
 ** The parent job is canceled the children jobs within that parent will also be canceled this is
 a default coroutine.
+
+** SupervisorJob : A failure or cancellation of a child does not cause the supervisor job to fail
+and does not affect its other children

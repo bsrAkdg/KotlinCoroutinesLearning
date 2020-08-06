@@ -30,6 +30,8 @@ class TimeoutActivity : AppCompatActivity() {
     private suspend fun fakeApiRequest() {
         withContext(IO) {
             val job1 = withTimeoutOrNull(jobTimeout) { // start timeout 1.9 second
+                println("debug : job 1 started")
+
                 val result1 = getResultOneFromApi() // wait 1 second
                 setTextOnMainThread("$result1 on Job 1")
 
@@ -44,6 +46,7 @@ class TimeoutActivity : AppCompatActivity() {
             }
 
             val job2 = launch { // wait job 1 completion
+                println("debug : job 2 started")
                 val result1 = getResultOneFromApi()
                 setTextOnMainThread("$result1 on Job 2")
             }

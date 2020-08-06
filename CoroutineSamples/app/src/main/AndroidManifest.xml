@@ -15,7 +15,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity"/>
+        <activity android:name=".MainActivity" />
         <activity android:name=".TimeoutActivity" />
         <activity android:name=".JobsActivity" />
         <activity android:name=".AsyncAndAwaitActivity" />
@@ -23,7 +23,7 @@
         <activity android:name=".FreezeUIActivity" />
         <activity android:name=".RunBlockingActivity" />
         <activity android:name=".GlobalScopeActivity" />
-        <activity android:name=".StructuredConcurrencyActivity" />
+        <activity android:name=".StructuredConcurrencyActivity"/>
     </application>
 
 </manifest>

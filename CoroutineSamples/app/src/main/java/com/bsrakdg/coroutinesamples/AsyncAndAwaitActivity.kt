@@ -64,7 +64,7 @@ class AsyncAndAwaitActivity : AppCompatActivity() {
 
                 val result2: Deferred<String> = async {
                     println("debug : launching job2 : ${Thread.currentThread().name}")
-                    getResultOneFromApi()
+                    getResultTwoFromApi()
                 }
 
                 setTextOnMainThread("Got ${result1.await()}")

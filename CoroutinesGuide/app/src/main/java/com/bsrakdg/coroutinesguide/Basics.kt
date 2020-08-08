@@ -1,9 +1,6 @@
 package com.bsrakdg.coroutinesguide
 
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlin.concurrent.thread
 
 /** https://kotlinlang.org/docs/reference/coroutines/basics.html
@@ -25,6 +22,15 @@ suspend fun main() {
     // TODO Waiting for a job
     waitingForAJob()
 
+    println("\n****************************\n")
+
+    // TODO Structured concurrency
+    structuredConcurrency()
+
+    println("\n****************************\n")
+
+    // TODO Scope builder
+    scopeBuilder()
 }
 
 fun firstCoroutine() {
@@ -142,4 +148,92 @@ suspend fun waitingForAJob() {
     println("Main thread start")
     job.join() // wait until child coroutine completes
     println("Main thread finish")
+}
+
+fun structuredConcurrency() {
+    /*
+        There is still something to be desired for practical usage of coroutines.
+        When we use GlobalScope.launch, we create a top-level coroutine.
+        Even though it is light-weight, it still consumes some memory resources while it runs.
+        If we forget to keep a reference to the newly launched coroutine, it still runs.
+        What if the code in the coroutine hangs (for example, we erroneously delay for too long),
+        what if we launched too many coroutines and ran out of memory? Having to manually keep
+        references to all the launched coroutines and join them is error-prone.
+
+        There is a better solution. We can use structured concurrency in our code.
+        Instead of launching coroutines in the GlobalScope, just like we usually do with threads
+        (threads are always global), we can launch coroutines in the specific scope of
+        the operation we are performing.
+
+        In our example, we have a main function that is turned into a coroutine using the
+        runBlocking coroutine builder. Every coroutine builder, including runBlocking, adds
+        an instance of CoroutineScope to the scope of its code block. We can launch coroutines in
+        this scope without having to join them explicitly, because an outer coroutine
+        (runBlocking in our example) does not complete until all the coroutines launched in its
+        scope complete. Thus, we can make our example simpler:
+     */
+    println("Start ...")
+    runBlockingSample()
+    println("End...")
+
+}
+
+fun runBlockingSample() = runBlocking { // this: CoroutineScope
+    launch { // launch a new coroutine in the scope of runBlocking
+        delay(1000L)
+        println("World!")
+    }
+    launch { // launch a new coroutine in the scope of runBlocking
+        delay(1000L)
+        println("How")
+    }
+    launch { // launch a new coroutine in the scope of runBlocking
+        delay(1000L)
+        println("Are You?")
+    }
+    println("Hello,")
+}
+
+
+fun scopeBuilder() {
+    /*
+        In addition to the coroutine scope provided by different builders, it is possible to declare
+        your own scope using the coroutineScope builder. It creates a coroutine scope and does not
+        complete until all launched children complete.
+
+        runBlocking and coroutineScope may look similar because they both wait for their body and
+        all its children to complete. The main difference is that the runBlocking method blocks
+        the current thread for waiting, while coroutineScope just suspends, releasing the underlying
+        thread for other usages. Because of that difference, runBlocking is a regular function and
+        coroutineScope is a suspending function.
+     */
+
+    println("Start...")
+    scopeBuilderSample()
+    println("End...")
+}
+
+
+fun scopeBuilderSample()  = runBlocking { // this: CoroutineScope
+    launch {
+        delay(200L)
+        println("Task from runBlocking")
+    }
+
+    coroutineScope { // Creates a coroutine scope
+        launch {
+            delay(500L)
+            println("Task from nested launch")
+        }
+
+        delay(100L)
+        println("Task from coroutine scope") // This line will be printed before the nested launch
+    }
+
+    println("Coroutine scope is over") // This line is not printed until the nested launch completes
+
+    /*
+        Note that right after the "Task from coroutine scope" message (while waiting for nested launch)
+         "Task from runBlocking" is executed and printed — even though the coroutineScope is not completed yet.
+     */
 }

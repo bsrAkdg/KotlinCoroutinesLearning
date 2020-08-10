@@ -31,6 +31,16 @@ suspend fun main() {
 
     // TODO Scope builder
     scopeBuilder()
+
+    println("\n****************************\n")
+
+    // TODO Extract function refactoring
+    extractFunctionRefactoring()
+
+    println("\n****************************\n")
+
+    // TODO Coroutines ARE light-weight
+    coroutinesArLightWeight()
 }
 
 fun firstCoroutine() {
@@ -236,4 +246,75 @@ fun scopeBuilderSample()  = runBlocking { // this: CoroutineScope
         Note that right after the "Task from coroutine scope" message (while waiting for nested launch)
          "Task from runBlocking" is executed and printed — even though the coroutineScope is not completed yet.
      */
+}
+
+fun extractFunctionRefactoring() {
+    /*
+        Let's extract the block of code inside launch { ... } into a separate function.
+        When you perform "Extract function" refactoring on this code, you get a new function with
+        the suspend modifier. This is your first suspending function. Suspending functions can be
+        used inside coroutines just like regular functions, but their additional feature is that
+        they can, in turn, use other suspending functions (like delay in this example) to suspend
+        execution of a coroutine.
+
+     */
+
+    extractFunctionRefactoringSample()
+
+    /*
+        But what if the extracted function contains a coroutine builder which is invoked on
+        the current scope? In this case, the suspend modifier on the extracted function is not enough.
+        Making doWorld an extension method on CoroutineScope is one of the solutions, but it may
+        not always be applicable as it does not make the API clearer. The idiomatic solution is to
+        have either an explicit CoroutineScope as a field in a class containing the target function
+        or an implicit one when the outer class implements CoroutineScope. As a last resort,
+        CoroutineScope(coroutineContext) can be used, but such an approach is structurally unsafe
+        because you no longer have control on the scope of execution of this method.
+        Only private APIs can use this builder.
+
+        look at doSomethingInapplicable
+     */
+}
+
+fun extractFunctionRefactoringSample() = runBlocking {
+    println("extractFunctionRefactoringSample start")
+    launch {
+        doSomething()
+    }
+
+    launch {
+        doSomethingInapplicable()
+    }
+    println("extractFunctionRefactoringSample end")
+}
+
+suspend fun doSomething() {
+    delay(1000L)
+    println("doSomething completed")
+}
+
+suspend fun doSomethingInapplicable() = runBlocking {
+    delay(1000L)
+    println("doSomethingNewCoroutine completed")
+}
+
+fun coroutinesArLightWeight() {
+    /*
+        It launches 100K coroutines and, after 5 seconds, each coroutine prints a dot.
+        Now, try that with threads. What would happen? (Most likely your code will produce some sort of out-of-memory error)
+     */
+    coroutinesArLightWeightSample()
+}
+
+fun coroutinesArLightWeightSample() = runBlocking {
+    println("coroutinesArLightWeightSample start")
+
+    repeat(10) { // launch a lot of coroutines
+        launch {
+            delay(5000L)
+            print(".")
+        }
+    }
+
+    println("coroutinesArLightWeightSample end")
 }

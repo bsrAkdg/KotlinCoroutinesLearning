@@ -20,6 +20,12 @@ fun main() {
 
     // TODO Making computation code cancellable
     makingComputationCodeCancellable()
+
+    println("\n****************************\n")
+
+    // TODO Closing resources with finally
+    closingResourcesWithFinally()
+
 }
 
 fun cancellingCoroutineExecution() {
@@ -128,5 +134,41 @@ fun makingComputationCodeCancellableSample() = runBlocking {
     /*
         As you can see, now this loop is cancelled. isActive is an extension property available
         inside the coroutine via the CoroutineScope object.
+     */
+}
+
+fun closingResourcesWithFinally() {
+    /*
+        Cancellable suspending functions throw CancellationException on cancellation which can be
+        handled in the usual way. For example, try {...} finally {...} expression and Kotlin use
+        function execute their finalization actions normally when a coroutine is cancelled:
+     */
+
+    closingResourcesWithFinallySample()
+}
+
+fun closingResourcesWithFinallySample() = runBlocking {
+    println("closingResourcesWithFinallySample start")
+
+    val job = launch {
+        try {
+            repeat(1000) { i ->
+                println("job: I'm sleeping $i ...")
+                delay(500L)
+            }
+        } finally {
+            println("job: I'm running finally")
+        }
+    }
+    delay(1300L) // delay a bit
+    println("main: I'm tired of waiting!")
+    job.cancelAndJoin() // cancels the job and waits for its completion
+    println("main: Now I can quit.")
+
+    println("closingResourcesWithFinallySample end")
+
+    /*
+        Both join and cancelAndJoin wait for all finalization actions to complete,
+         so the example above produces the following output:
      */
 }

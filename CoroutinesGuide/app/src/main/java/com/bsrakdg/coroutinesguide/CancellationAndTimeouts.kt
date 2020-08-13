@@ -30,6 +30,11 @@ fun main() {
 
     // TODO Run non-cancellable block
     runNonCancellableBlock()
+
+    println("\n****************************\n")
+
+    // TODO Timeout
+    timeout()
 }
 
 fun cancellingCoroutineExecution() {
@@ -215,4 +220,55 @@ fun runNonCancellableBlockSample() = runBlocking {
     println("main: Now I can quit.")
 
     println("runNonCancellableBlockSample end")
+}
+
+fun timeout() {
+    /*
+        The most obvious practical reason to cancel execution of a coroutine is because its execution
+        time has exceeded some timeout. While you can manually track the reference to the corresponding
+        Job and launch a separate coroutine to cancel the tracked one after delay,
+        there is a ready to use withTimeout function that does it. Look at the following example:
+
+         Look at timeoutSample1() (throws TimeoutCancellationException)
+
+        The TimeoutCancellationException that is thrown by withTimeout is a subclass of CancellationException.
+        We have not seen its stack trace printed on the console before.
+        That is because inside a cancelled coroutine CancellationException is considered to be a normal reason for coroutine completion.
+        However, in this example we have used withTimeout right inside the function.
+
+        Since cancellation is just an exception, all resources are closed in the usual way.
+        You can wrap the code with timeout in a try {...} catch (e: TimeoutCancellationException) {...} block
+        if you need to do some additional action specifically on any kind of timeout or use the withTimeoutOrNull
+        function that is similar to withTimeout but returns null on timeout instead of throwing an exception:
+     */
+
+    timeoutSample2()
+}
+
+fun timeoutSample1() = runBlocking {
+    println("timeoutSample1 start")
+
+    withTimeout(1300L) {
+        repeat(1000) { i ->
+            println("I'm sleeping $i ...")
+            delay(500L)
+        }
+    }
+    println("timeoutSample1 end")
+}
+
+fun timeoutSample2() = runBlocking {
+    println("timeoutSample2 start")
+
+    val result = withTimeoutOrNull(1300L) {
+        repeat(1000) { i ->
+            println("I'm sleeping $i ...")
+            delay(500L)
+        }
+        "Done" // will get cancelled before it produces this result
+    }
+    println("Result is $result")
+
+    println("timeoutSample2 end")
+
 }

@@ -28,6 +28,9 @@ suspend fun main() {
     asyncStyleFunctions()
 
     println("\n****************************\n")
+
+    // TODO Structured concurrency with async
+    structuredConcurrencyWithAsync();
 }
 
 suspend fun sequentialByDefault() {
@@ -203,4 +206,69 @@ fun asyncStyleFunctionsSample() {
 
         This problem does not happen with structured concurrency, as shown in the section below.
      */
+}
+
+suspend fun structuredConcurrencyWithAsync() {
+    /*
+        Let us take the Concurrent using async example and extract a function that concurrently performs
+        doSomethingUsefulOne and doSomethingUsefulTwo and returns the sum of their results.
+        Because the async coroutine builder is defined as an extension on CoroutineScope,
+        we need to have it in the scope and that is what the coroutineScope function provides:
+
+        Look at concurrentSum function.
+
+        This way, if something goes wrong inside the code of the concurrentSum function and it throws an exception,
+        all the coroutines that were launched in its scope will be cancelled.
+
+        We still have concurrent execution of both operations, as evident from the output of the above function:
+     */
+
+    val time = measureTimeMillis {
+        println("The answer is ${concurrentSum()}")
+    }
+    println("Completed in $time ms")
+
+    /*
+        Cancellation is always propagated through coroutines hierarchy:
+     */
+
+    structuredConcurrencyWithAsyncSample()
+}
+
+suspend fun concurrentSum(): Int = coroutineScope {
+    val one = async { doSomethingUsefulOne() }
+    val two = async { doSomethingUsefulTwo() }
+    one.await() + two.await()
+}
+
+fun structuredConcurrencyWithAsyncSample() = runBlocking<Unit>{
+    println("structuredConcurrencyWithAsyncSample start")
+
+    try {
+        failedConcurrentSum()
+    } catch(e: ArithmeticException) {
+        println("Computation failed with ArithmeticException")
+    }
+
+    println("structuredConcurrencyWithAsyncSample end")
+}
+
+suspend fun failedConcurrentSum(): Int = coroutineScope {
+    val one = async<Int> {
+        try {
+            delay(Long.MAX_VALUE) // Emulates very long computation
+            42
+        } finally {
+            println("First child was cancelled")
+        }
+    }
+    val two = async<Int> {
+        println("Second child throws an exception")
+        throw ArithmeticException()
+    }
+    one.await() + two.await()
+
+    /*
+      Note how both the first async and the awaiting parent are cancelled on failure of one of the children (namely, two):
+    */
 }

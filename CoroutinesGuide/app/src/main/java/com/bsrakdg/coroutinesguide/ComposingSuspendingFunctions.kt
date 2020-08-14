@@ -1,9 +1,6 @@
 package com.bsrakdg.coroutinesguide
 
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlin.system.measureTimeMillis
 
 /** https://kotlinlang.org/docs/reference/coroutines/composing-suspending-functions.html
@@ -24,6 +21,11 @@ suspend fun main() {
 
     // TODO Lazily started async
     lazilyStartedAsync()
+
+    println("\n****************************\n")
+
+    // TODO Async-style functions
+    asyncStyleFunctions()
 
     println("\n****************************\n")
 }
@@ -138,5 +140,67 @@ fun lazilyStartedAsyncSample()  = runBlocking {
 
         The use-case for async(start = CoroutineStart.LAZY) is a replacement for the standard
         lazy function in cases when computation of the value involves suspending functions.
+     */
+}
+
+fun asyncStyleFunctions() {
+    /*
+        We can define async-style functions that invoke doSomethingUsefulOne and doSomethingUsefulTwo
+        asynchronously using the async coroutine builder with an explicit GlobalScope reference.
+        We name such functions with the "…Async" suffix to highlight the fact that they only start
+        asynchronous computation and one needs to use the resulting deferred value to get the result.
+
+        Note that these xxxAsync functions are not suspending functions.
+        They can be used from anywhere.
+        However, their use always implies asynchronous (here meaning concurrent) execution of
+        their action with the invoking code.
+
+        The following example shows their use outside of coroutine:
+     */
+    asyncStyleFunctionsSample()
+}
+
+// The result type of somethingUsefulOneAsync is Deferred<Int>
+fun somethingUsefulOneAsync() = GlobalScope.async {
+    doSomethingUsefulOne()
+}
+
+// The result type of somethingUsefulTwoAsync is Deferred<Int>
+fun somethingUsefulTwoAsync() = GlobalScope.async {
+    doSomethingUsefulTwo()
+}
+
+// note that we don't have `runBlocking` to the right of `asyncStyleFunctionsSample` in this example
+fun asyncStyleFunctionsSample() {
+    println("asyncStyleFunctionsSample start")
+
+    val time = measureTimeMillis {
+        // we can initiate async actions outside of a coroutine
+        val one = somethingUsefulOneAsync()
+        val two = somethingUsefulTwoAsync()
+        // but waiting for a result must involve either suspending or blocking.
+        // here we use `runBlocking { ... }` to block the main thread while waiting for the result
+        runBlocking {
+            println("The answer is ${one.await() + two.await()}")
+        }
+    }
+    println("Completed in $time ms")
+
+    println("asyncStyleFunctionsSample end")
+
+    /*
+        This programming style with async functions is provided here only for illustration,
+        because it is a popular style in other programming languages.
+        Using this style with Kotlin coroutines is strongly discouraged for the reasons explained below.
+
+        Consider what happens if between the
+        val one = somethingUsefulOneAsync() line and one.await() expression there is some logic error
+        in the code and the program throws an exception and the operation that was being performed
+        by the program aborts. Normally, a global error-handler could catch this exception,
+        log and report the error for developers, but the program could otherwise continue doing other operations.
+        But here we have somethingUsefulOneAsync still running in the background,
+        even though the operation that initiated it was aborted.
+
+        This problem does not happen with structured concurrency, as shown in the section below.
      */
 }

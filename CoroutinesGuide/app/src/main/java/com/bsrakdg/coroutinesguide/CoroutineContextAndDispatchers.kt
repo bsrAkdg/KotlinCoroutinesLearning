@@ -30,6 +30,8 @@ fun main() {
 
     println("\n****************************\n")
 
+    // TODO Jumping between threads
+    jumpingBetweenThreads()
 }
 
 fun dispatchersAndThreads() {
@@ -182,3 +184,29 @@ fun debuggingUsingLoggingSample() = runBlocking<Unit> {
 }
 
 fun log(msg: String) = println("[${Thread.currentThread().name}] $msg")
+
+fun jumpingBetweenThreads() {
+    /*
+        Run the following code with the -Dkotlinx.coroutines.debug JVM option (see debug):
+     */
+    newSingleThreadContext("Ctx1").use { ctx1 ->
+        newSingleThreadContext("Ctx2").use { ctx2 ->
+            runBlocking(ctx1) {
+                log("Started in ctx1")
+                withContext(ctx2) {
+                    log("Working in ctx2")
+                }
+                log("Back to ctx1")
+            }
+        }
+    }
+
+    /*
+        It demonstrates several new techniques. One is using runBlocking with an explicitly
+        specified context, and the other one is using the withContext function to change the context
+        of a coroutine while still staying in the same coroutine, as you can see in the output.
+
+        Note that this example also uses the use function from the Kotlin standard library to release
+        threads created with newSingleThreadContext when they are no longer needed.
+     */
+}

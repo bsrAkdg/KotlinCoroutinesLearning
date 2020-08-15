@@ -19,6 +19,11 @@ fun main() {
 
     // TODO Unconfined vs confined dispatcher
     unconfinedConfinedDispatcher()
+
+    println("\n****************************\n")
+
+    // TODO Debugging coroutines and threads
+    debuggingCoroutinesAndThreads()
 }
 
 fun dispatchersAndThreads() {
@@ -117,3 +122,25 @@ fun unconfinedConfinedDispatcherSample() = runBlocking<Unit> {
      */
 }
 
+fun debuggingCoroutinesAndThreads() {
+    /*
+        Coroutines can suspend on one thread and resume on another thread. Even with a single-threaded
+        dispatcher it might be hard to figure out what the coroutine was doing, where,
+        and when if you don't have special tooling.
+
+        Debugging with IDEA : Debugging works for versions 1.3.8 or later of kotlinx-coroutines-core.
+        The Debug Tool Window contains a Coroutines tab. In this tab, you can find information about
+        both currently running and suspended coroutines. The coroutines are grouped by the dispatcher they are running on.
+
+        You can:
+        - Easily check the state of each coroutine.
+        - See the values of local and captured variables for both running and suspended coroutines.
+        - See a full coroutine creation stack, as well as a call stack inside the coroutine.
+        The stack includes all frames with variable values, even those that would be lost during standard debugging.
+
+        If you need a full report containing the state of each coroutine and its stack,
+        right-click inside the Coroutines tab, and then click Get Coroutines Dump.
+
+        https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-debugging-coroutines/
+     */
+}

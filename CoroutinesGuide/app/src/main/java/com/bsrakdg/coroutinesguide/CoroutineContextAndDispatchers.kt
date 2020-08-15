@@ -24,6 +24,12 @@ fun main() {
 
     // TODO Debugging coroutines and threads
     debuggingCoroutinesAndThreads()
+
+    // TODO Debugging using logging
+    debuggingUsingLogging()
+
+    println("\n****************************\n")
+
 }
 
 fun dispatchersAndThreads() {
@@ -144,3 +150,35 @@ fun debuggingCoroutinesAndThreads() {
         https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-debugging-coroutines/
      */
 }
+
+fun debuggingUsingLogging() {
+    /*
+        Another approach to debugging applications with threads without Coroutine Debugger is to
+        print the thread name in the log file on each log statement. This feature is universally
+        supported by logging frameworks. When using coroutines, the thread name alone does not give
+        much of a context, so kotlinx.coroutines includes debugging facilities to make it easier.
+
+        Run the following code with -Dkotlinx.coroutines.debug JVM option:
+     */
+    debuggingUsingLoggingSample()
+}
+
+fun debuggingUsingLoggingSample() = runBlocking<Unit> {
+    val a = async {
+        log("I'm computing a piece of the answer")
+        6
+    }
+    val b = async {
+        log("I'm computing another piece of the answer")
+        7
+    }
+    log("The answer is ${a.await() * b.await()}")
+
+    /*
+        There are three coroutines. The main coroutine (#1) inside runBlocking and two coroutines
+        computing the deferred values a (#2) and b (#3). They are all executing in the context of
+        runBlocking and are confined to the main thread.
+     */
+}
+
+fun log(msg: String) = println("[${Thread.currentThread().name}] $msg")

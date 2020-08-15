@@ -32,6 +32,11 @@ fun main() {
 
     // TODO Jumping between threads
     jumpingBetweenThreads()
+
+    println("\n****************************\n")
+
+    // TODO Job in the context
+    jobInTheContext()
 }
 
 fun dispatchersAndThreads() {
@@ -209,4 +214,20 @@ fun jumpingBetweenThreads() {
         Note that this example also uses the use function from the Kotlin standard library to release
         threads created with newSingleThreadContext when they are no longer needed.
      */
+}
+
+fun jobInTheContext() {
+    /*
+        The coroutine's Job is part of its context, and can be retrieved from it using the coroutineContext[Job] expression:
+     */
+    jobInTheContextSample()
+
+    /*
+        Note that isActive in CoroutineScope is just a convenient shortcut for
+        coroutineContext[Job]?.isActive == true.
+     */
+}
+
+fun jobInTheContextSample() = runBlocking<Unit> {
+    println("My job is ${coroutineContext[Job]}")
 }

@@ -17,7 +17,8 @@ fun main() {
 
     println("\n****************************\n")
 
-
+    // TODO Unconfined vs confined dispatcher
+    unconfinedConfinedDispatcher()
 }
 
 fun dispatchersAndThreads() {
@@ -74,3 +75,45 @@ fun dispatchersAndThreadsSample() = runBlocking<Unit> {
         }
 
 }
+
+fun unconfinedConfinedDispatcher() {
+    /*
+        The Dispatchers.Unconfined coroutine dispatcher starts a coroutine in the caller thread,
+        but only until the first suspension point. After suspension it resumes the coroutine in
+        the thread that is fully determined by the suspending function that was invoked.
+        The unconfined dispatcher is appropriate for coroutines which neither consume CPU time nor
+        update any shared data (like UI) confined to a specific thread.
+
+        On the other side, the dispatcher is inherited from the outer CoroutineScope by default.
+        The default dispatcher for the runBlocking coroutine, in particular, is confined to the invoker thread,
+        so inheriting it has the effect of confining execution to this thread with predictable FIFO scheduling.
+     */
+
+    unconfinedConfinedDispatcherSample()
+}
+
+fun unconfinedConfinedDispatcherSample() = runBlocking<Unit> {
+
+    launch(Dispatchers.Unconfined) { // not confined -- will work with main thread
+        println("Unconfined      : I'm working in thread ${Thread.currentThread().name}")
+        delay(500)
+        println("Unconfined      : After delay in thread ${Thread.currentThread().name}")
+    }
+    launch { // context of the parent, main runBlocking coroutine
+        println("main runBlocking: I'm working in thread ${Thread.currentThread().name}")
+        delay(1000)
+        println("main runBlocking: After delay in thread ${Thread.currentThread().name}")
+    }
+
+    /*
+        So, the coroutine with the context inherited from runBlocking {...} continues to execute
+        in the main thread, while the unconfined one resumes in the default executor thread that
+        the delay function is using.
+
+        The unconfined dispatcher is an advanced mechanism that can be helpful in certain corner
+        cases where dispatching of a coroutine for its execution later is not needed or produces
+        undesirable side-effects, because some operation in a coroutine must be performed right away.
+        The unconfined dispatcher should not be used in general code.
+     */
+}
+

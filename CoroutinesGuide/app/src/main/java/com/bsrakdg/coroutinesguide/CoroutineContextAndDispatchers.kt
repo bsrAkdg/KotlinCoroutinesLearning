@@ -42,6 +42,11 @@ fun main() {
 
     // TODO Children of a coroutine
     childrenOfCoroutine()
+
+    println("\n****************************\n")
+
+    // TODO Parental responsibilities
+    parentalResponsibilities()
 }
 
 fun dispatchersAndThreads() {
@@ -271,4 +276,32 @@ fun childrenOfCoroutineSample() = runBlocking<Unit> {
     request.cancel() // cancel processing of the request
     delay(1000) // delay a second to see what happens
     println("main: Who has survived request cancellation?")
+}
+
+fun parentalResponsibilities() {
+    /*
+        A parent coroutine always waits for completion of all its children.
+        A parent does not have to explicitly track all the children it launches,
+        and it does not have to use Job.join to wait for them at the end:
+     */
+    // launch a coroutine to process some kind of incoming request
+    parentalResponsibilitiesSample()
+}
+
+fun parentalResponsibilitiesSample() = runBlocking {
+    println("parentalResponsibilitiesSample start")
+
+    val request = launch {
+        repeat(3) { i -> // launch a few children jobs
+            launch {
+                delay((i + 1) * 200L) // variable delay 200ms, 400ms, 600ms
+                println("Coroutine $i is done")
+            }
+        }
+        println("request: I'm done and I don't explicitly join my children that are still active")
+    }
+    request.join() // wait for completion of the request, including all its children
+    println("Now processing of the request is complete")
+
+    println("parentalResponsibilitiesSample end")
 }

@@ -47,6 +47,11 @@ fun main() {
 
     // TODO Parental responsibilities
     parentalResponsibilities()
+
+    println("\n****************************\n")
+
+    // TODO Naming coroutines for debugging
+    namingCoroutinesForDebugging()
 }
 
 fun dispatchersAndThreads() {
@@ -304,4 +309,39 @@ fun parentalResponsibilitiesSample() = runBlocking {
     println("Now processing of the request is complete")
 
     println("parentalResponsibilitiesSample end")
+}
+
+fun namingCoroutinesForDebugging() {
+    /*
+        Automatically assigned ids are good when coroutines log often and
+        you just need to correlate log records coming from the same coroutine.
+        However, when a coroutine is tied to the processing of a specific request or doing some
+        specific background task, it is better to name it explicitly for debugging purposes.
+        The CoroutineName context element serves the same purpose as the thread name.
+        It is included in the thread name that is executing this coroutine when the debugging mode is turned on.
+     */
+
+    namingCoroutinesForDebuggingSample()
+}
+
+fun namingCoroutinesForDebuggingSample() = runBlocking {
+
+    println("namingCoroutinesForDebuggingSample start")
+
+    log("Started main coroutine")
+
+    // run two background value computations
+    val v1 = async(CoroutineName("v1coroutine")) {
+        delay(500)
+        log("Computing v1")
+        252
+    }
+    val v2 = async(CoroutineName("v2coroutine")) {
+        delay(1000)
+        log("Computing v2")
+        6
+    }
+    log("The answer for v1 / v2 = ${v1.await() / v2.await()}")
+
+    println("namingCoroutinesForDebuggingSample end")
 }

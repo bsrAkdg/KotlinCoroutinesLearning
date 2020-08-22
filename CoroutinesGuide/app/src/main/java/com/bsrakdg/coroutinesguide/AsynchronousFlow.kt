@@ -40,6 +40,11 @@ fun main() {
 
     // TODO Terminal flow operators
     terminalFlowOperators()
+
+    println("\n****************************\n")
+
+    // TODO Flows are sequential
+    flowsAreSequential()
 }
 
 fun representingMultipleValues() {
@@ -312,5 +317,32 @@ fun terminalFlowOperators() {
             .map { it * it } // squares of numbers from 1 to 5
             .reduce { a, b -> a + b } // sum them (terminal operator)
         println(sum) // Prints a single number:
+    }
+}
+
+fun flowsAreSequential() {
+    /*
+        Each individual collection of a flow is performed sequentially unless special operators
+        that operate on multiple flows are used. The collection works directly in the coroutine
+        that calls a terminal operator. No new coroutines are launched by default.
+        Each emitted value is processed by all the intermediate operators from upstream to downstream
+        and is then delivered to the terminal operator after.
+
+        See the following example that filters the even integers and maps them to strings:
+     */
+    println("flowsAreSequential start")
+
+    runBlocking {
+        (1..5).asFlow()
+            .filter {
+                println("Filter $it")
+                it % 2 == 0
+            }
+            .map {
+                println("Map $it")
+                "string $it"
+            }.collect {
+                println("Collect $it")
+            }
     }
 }

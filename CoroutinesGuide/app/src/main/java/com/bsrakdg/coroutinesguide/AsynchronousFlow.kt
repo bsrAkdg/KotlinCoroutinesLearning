@@ -4,6 +4,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** https://kotlinlang.org/docs/reference/coroutines/flow.html#asynchronous-flow
  *  A suspending function asynchronously returns a single value, but how can we return multiple
@@ -19,6 +20,11 @@ fun main() {
 
     // TODO Flows are cold
     flowsAreCold()
+
+    println("\n****************************\n")
+
+    // TODO Flow cancellation basics
+    flowCancellationBasics()
 }
 
 fun representingMultipleValues() {
@@ -147,3 +153,30 @@ fun flowsAreColdSample(): Flow<Int> = flow {
         emit(i)
     }
 }
+
+fun flowCancellationBasics() {
+    /*
+        Flow adheres to the general cooperative cancellation of coroutines. As usual,
+         flow collection can be cancelled when the flow is suspended in a cancellable suspending
+         function (like delay). The following example shows how the flow gets cancelled on a timeout
+         when running in a withTimeoutOrNull block and stops executing its code:
+     */
+
+    println("flowCancellationBasics start")
+
+    runBlocking {
+        withTimeoutOrNull(250) { // Timeout after 250ms
+            flowCancellationBasicsSample().collect { value -> println(value) }
+        }
+        println("Done")
+    }
+}
+
+fun flowCancellationBasicsSample(): Flow<Int> = flow {
+    for (i in 1..3) {
+        delay(100)
+        println("Emitting $i")
+        emit(i)
+    }
+}
+

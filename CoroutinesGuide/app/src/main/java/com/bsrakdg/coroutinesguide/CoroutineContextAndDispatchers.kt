@@ -52,6 +52,11 @@ fun main() {
 
     // TODO Naming coroutines for debugging
     namingCoroutinesForDebugging()
+
+    println("\n****************************\n")
+
+    // TODO Combining context elements
+    combiningContextElements()
 }
 
 fun dispatchersAndThreads() {
@@ -344,4 +349,24 @@ fun namingCoroutinesForDebuggingSample() = runBlocking {
     log("The answer for v1 / v2 = ${v1.await() / v2.await()}")
 
     println("namingCoroutinesForDebuggingSample end")
+}
+
+fun combiningContextElements() {
+    /*
+        Sometimes we need to define multiple elements for a coroutine context.
+        We can use the + operator for that. For example, we can launch a coroutine with an explicitly
+        specified dispatcher and an explicitly specified name at the same time:
+     */
+    combiningContextElementsSample()
+}
+
+fun combiningContextElementsSample() = runBlocking {
+
+    println("combiningContextElementsSample start")
+
+    launch(Dispatchers.Default + CoroutineName("test")) {
+        println("I'm working in thread ${Thread.currentThread().name}")
+    }
+
+    println("combiningContextElementsSample end")
 }

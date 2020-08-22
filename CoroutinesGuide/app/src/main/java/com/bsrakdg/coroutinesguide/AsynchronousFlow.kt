@@ -1,10 +1,7 @@
 package com.bsrakdg.coroutinesguide
 
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 
 /** https://kotlinlang.org/docs/reference/coroutines/flow.html#asynchronous-flow
  *  A suspending function asynchronously returns a single value, but how can we return multiple
@@ -45,6 +42,11 @@ fun main() {
 
     // TODO Flows are sequential
     flowsAreSequential()
+
+    println("\n****************************\n")
+
+    // TODO Flow context
+    flowContext()
 }
 
 fun representingMultipleValues() {
@@ -346,3 +348,106 @@ fun flowsAreSequential() {
             }
     }
 }
+
+fun flowContext() {
+    /*
+        Collection of a flow always happens in the context of the calling coroutine.
+        For example, if there is a simple flow, then the following code runs in the context specified
+        by the author of this code, regardless of the implementation details of the simple flow:
+
+         withContext(context) {
+            simple().collect { value ->
+                println(value) // run in the specified context
+            }
+        }
+
+        This property of a flow is called context preservation.
+
+        So, by default, code in the flow { ... } builder runs in the context that is provided by
+        a collector of the corresponding flow. For example, consider the implementation of a
+        flowContextSample function that prints the thread it is called on and emits three numbers:
+     */
+
+    runBlocking {
+        flowContextSample().collect { value -> log("Collected $value") }
+    }
+
+    /*
+        Since flowContextSample().collect is called from the main thread,
+        the body of flowContextSample's flow is also called in the main thread.
+        This is the perfect default for fast-running or asynchronous code that does not care about
+        the execution context and does not block the caller.
+     */
+
+    println("\n--------------\n")
+
+    /*  TODO 1. Wrong emission withContext
+        However, the long-running CPU-consuming code might need to be executed in the context of
+        Dispatchers.Default and UI-updating code might need to be executed in the context of
+        Dispatchers.Main. Usually, withContext is used to change the context in the code using
+        Kotlin coroutines, but code in the flow { ... } builder has to honor the context preservation
+        property and is not allowed to emit from a different context.
+     */
+    runBlocking {
+        // This code produces the following exception: Flow invariant is violated
+        // wrongEmissionWithContext().collect { value -> println(value) }
+    }
+
+    /*  TODO 2. flowOn operator
+        The exception refers to the flowOn function that shall be used to change the context of the
+        flow emission. The correct way to change the context of a flow is shown in the example below,
+        which also prints the names of the corresponding threads to show how it all works:
+    */
+
+    runBlocking {
+        log("flowOnOperator start")
+
+        flowOnOperator().collect { value ->
+            log("Collected $value")
+        }
+    }
+
+    /*
+        Notice how flow { ... } works in the background thread, while collection happens in the main thread.
+
+        Another thing to observe here is that the flowOn operator has changed the default sequential
+        nature of the flow. Now collection happens in one coroutine ("coroutine#1") and
+        emission happens in another coroutine ("coroutine#2") that is running in another thread
+        concurrently with the collecting coroutine. The flowOn operator creates another coroutine
+        for an upstream flow when it has to change the CoroutineDispatcher in its context.
+
+        [DefaultDispatcher-worker-1 @coroutine#2] Emitting 1
+        [main @coroutine#1] Collected 1
+        [DefaultDispatcher-worker-1 @coroutine#2] Emitting 2
+        [main @coroutine#1] Collected 2
+        [DefaultDispatcher-worker-1 @coroutine#2] Emitting 3
+        [main @coroutine#1] Collected 3
+     */
+}
+
+fun flowContextSample(): Flow<Int> = flow {
+    log("Started flowContextSample flow")
+    for (i in 1..3) {
+        emit(i)
+    }
+}
+
+fun wrongEmissionWithContext(): Flow<Int> = flow {
+    // The WRONG way to change context for CPU-consuming code in flow builder
+    println("wrongEmissionWithContext start")
+
+    withContext(Dispatchers.Default) {
+        for (i in 1..3) {
+            Thread.sleep(100) // pretend we are computing it in CPU-consuming way
+            emit(i) // emit next value
+        }
+    }
+}
+
+fun flowOnOperator(): Flow<Int> = flow {
+    for (i in 1..3) {
+        Thread.sleep(100) // pretend we are computing it in CPU-consuming way
+        log("Emitting $i")
+        emit(i) // emit next value
+    }
+}.flowOn(Dispatchers.Default) // RIGHT way to change context for CPU-consuming code in flow builder

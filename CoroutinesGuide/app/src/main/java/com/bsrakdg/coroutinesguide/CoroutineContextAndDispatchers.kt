@@ -62,6 +62,11 @@ fun main() {
 
     // TODO Coroutine scope
     coroutineScopeInformation()
+
+    println("\n****************************\n")
+
+    // TODO Thread-local data
+    threadLocalData()
 }
 
 fun dispatchersAndThreads() {
@@ -444,4 +449,63 @@ class ActivitySample { // 1*
         Note, that Android has first-party support for coroutine scope in all entities with the lifecycle.
         See the corresponding documentation : https://developer.android.com/topic/libraries/architecture/coroutines#lifecyclescope
      */
+}
+
+
+fun threadLocalData() {
+
+    /*
+        Sometimes it is convenient to have an ability to pass some thread-local data to or between coroutines.
+        However, since they are not bound to any particular thread, this will likely lead to boilerplate if done manually.
+
+        For ThreadLocal, the asContextElement extension function is here for the rescue.
+        It creates an additional context element which keeps the value of the given ThreadLocal and
+        restores it every time the coroutine switches its context.
+
+        It is easy to demonstrate it in action:
+     */
+
+    threadLocalDataSample()
+}
+
+val threadLocal = ThreadLocal<String?>() // declare thread-local variable
+
+fun threadLocalDataSample() = runBlocking{
+    println("threadLocalDataSample start")
+
+    threadLocal.set("main")
+    println("Pre-main, current thread: ${Thread.currentThread()}, thread local value: '${threadLocal.get()}'")
+
+    val job = launch(Dispatchers.Default + threadLocal.asContextElement(value = "launch")) {
+        println("Launch start, current thread: ${Thread.currentThread()}, thread local value: '${threadLocal.get()}'")
+        yield()
+        println("After yield, current thread: ${Thread.currentThread()}, thread local value: '${threadLocal.get()}'")
+    }
+
+    job.join()
+    println("Post-main, current thread: ${Thread.currentThread()}, thread local value: '${threadLocal.get()}'")
+
+    println("threadLocalDataSample end")
+
+    /*
+      In this example we launch a new coroutine in a background thread pool using Dispatchers.Default,
+      so it works on a different thread from the thread pool, but it still has the value of
+      the thread local variable that we specified using threadLocal.asContextElement(value = "launch"),
+      no matter which thread the coroutine is executed on.
+
+      It's easy to forget to set the corresponding context element.
+      The thread-local variable accessed from the coroutine may then have an unexpected value,
+      if the thread running the coroutine is different. To avoid such situations,
+      it is recommended to use the ensurePresent method and fail-fast on improper usages.
+      https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/java.lang.-thread-local/ensure-present.html
+
+      Alternatively, a value can be stored in a mutable box like class Counter(var i: Int), which is,
+      in turn, stored in a thread-local variable. However, in this case you are fully responsible to
+      synchronize potentially concurrent modifications to the variable in this mutable box.
+
+      For advanced usage, for example for integration with logging MDC, transactional contexts or
+      any other libraries which internally use thread-locals for passing data, see the documentation
+      of the ThreadContextElement interface that should be implemented.
+      https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-thread-context-element/index.html
+   */
 }

@@ -35,6 +35,11 @@ fun main() {
 
     // TODO Intermediate flow operators
     intermediateFlowOperators()
+
+    println("\n****************************\n")
+
+    // TODO Terminal flow operators
+    terminalFlowOperators()
 }
 
 fun representingMultipleValues() {
@@ -287,5 +292,25 @@ fun numbers(): Flow<Int> = flow {
         emit(3)
     } finally {
         println("Finally in numbers")
+    }
+}
+
+fun terminalFlowOperators() {
+    /*
+        Terminal operators on flows are suspending functions that start a collection of the flow.
+        The collect operator is the most basic one, but there are other terminal operators, which can make it easier:
+        - Conversion to various collections like toList and toSet.
+        - Operators to get the first value and to ensure that a flow emits a single value.
+        - Reducing a flow to a value with reduce and fold.
+        For example:
+     */
+
+    println("terminalFlowOperators start")
+
+    runBlocking {
+        val sum = (1..5).asFlow()
+            .map { it * it } // squares of numbers from 1 to 5
+            .reduce { a, b -> a + b } // sum them (terminal operator)
+        println(sum) // Prints a single number:
     }
 }

@@ -25,6 +25,11 @@ fun main() {
 
     // TODO Flow cancellation basics
     flowCancellationBasics()
+
+    println("\n****************************\n")
+
+    // TODO Flow builders
+    flowBuilders()
 }
 
 fun representingMultipleValues() {
@@ -180,3 +185,20 @@ fun flowCancellationBasicsSample(): Flow<Int> = flow {
     }
 }
 
+fun flowBuilders() {
+    /*
+        The flow { ... } builder from the previous examples is the most basic one. There are other
+        builders for easier declaration of flows:
+
+        - flowOf builder that defines a flow emitting a fixed set of values.
+        - Various collections and sequences can be converted to flows using .asFlow() extension functions.
+
+        So, the example that prints the numbers from 1 to 3 from a flow can be written as:
+     */
+    runBlocking {
+        // Convert an integer range to a flow
+        println("flowBuilders start")
+
+        (1..3).asFlow().collect { value -> println(value) }
+    }
+}

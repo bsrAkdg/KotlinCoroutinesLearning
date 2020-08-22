@@ -16,6 +16,9 @@ fun main() {
     representingMultipleValues()
 
     println("\n****************************\n")
+
+    // TODO Flows are cold
+    flowsAreCold()
 }
 
 fun representingMultipleValues() {
@@ -112,5 +115,35 @@ fun flowSample(): Flow<Int> = flow { // flow builder
     for (i in 1..3) {
         delay(1000) // pretend we are doing something useful here
         emit(i) // emit next value
+    }
+}
+
+fun flowsAreCold() {
+    /*
+        Flows are cold streams similar to sequences — the code inside a flow builder does not run
+        until the flow is collected. This becomes clear in the following example:
+     */
+
+    runBlocking {
+        println("Calling flowsAreColdSample function...")
+        val flow = flowsAreColdSample()
+        println("Calling collect...")
+        flow.collect { value -> println(value) }
+        println("Calling collect again...")
+        flow.collect { value -> println(value) }
+    }
+
+    /*
+        This is a key reason the flowsAreColdSample function (which returns a flow) is not marked with suspend modifier.
+        By itself, flowsAreColdSample() call returns quickly and does not wait for anything.
+        The flow starts every time it is collected, that is why we see "Flow started" when we call collect again.
+     */
+}
+
+fun flowsAreColdSample(): Flow<Int> = flow {
+    println("Flow started")
+    for (i in 1..3) {
+        delay(100)
+        emit(i)
     }
 }

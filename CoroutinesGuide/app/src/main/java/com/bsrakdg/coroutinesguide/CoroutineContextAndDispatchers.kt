@@ -57,6 +57,11 @@ fun main() {
 
     // TODO Combining context elements
     combiningContextElements()
+
+    println("\n****************************\n")
+
+    // TODO Coroutine scope
+    coroutineScopeInformation()
 }
 
 fun dispatchersAndThreads() {
@@ -369,4 +374,74 @@ fun combiningContextElementsSample() = runBlocking {
     }
 
     println("combiningContextElementsSample end")
+}
+
+fun coroutineScopeInformation() {
+    /*
+        Let us put our knowledge about contexts, children and jobs together.
+        Assume that our application has an object with a lifecycle, but that object is not a coroutine.
+        For example, we are writing an Android application and launch various coroutines in
+        the context of an Android activity to perform asynchronous operations to fetch and update data,
+        do animations, etc. All of these coroutines must be cancelled when the activity is destroyed
+        to avoid memory leaks. We, of course, can manipulate contexts and jobs manually to tie
+        the lifecycles of the activity and its coroutines, but kotlinx.coroutines provides an abstraction
+        encapsulating that: CoroutineScope. You should be already familiar with the coroutine scope
+        as all coroutine builders are declared as extensions on it.
+
+        We manage the lifecycles of our coroutines by creating an instance of CoroutineScope tied to
+        the lifecycle of our activity. A CoroutineScope instance can be created by the CoroutineScope()
+        or MainScope() factory functions. The former creates a general-purpose scope, while the latter
+        creates a scope for UI applications and uses Dispatchers. Look at ActivitySample 1*
+
+        Now, we can launch coroutines in the scope of this Activity using the defined scope.
+        For the demo, we launch ten coroutines that delay for a different time:
+        Look at ActivitySample 2*
+
+        In our main function we create the activity, call our test doSomething function,
+        and destroy the activity after 500ms. This cancels all the coroutines that were launched
+        from doSomething. We can see that because after the destruction of the activity
+        no more messages are printed, even if we wait a little longer.
+
+     */
+    coroutineScopeInformationSample()
+}
+
+fun coroutineScopeInformationSample() = runBlocking {
+    println("coroutineScopeInformationSample start")
+
+    val activity = ActivitySample()
+    activity.doSomething() // run test function
+    println("Launched coroutines")
+    delay(500L) // delay for half a second
+    println("Destroying activity!")
+    activity.destroy() // cancels all coroutines
+    delay(1000) // visually confirm that they don't work
+
+    println("coroutineScopeInformationSample end")
+}
+
+class ActivitySample { // 1*
+    private val mainScope = CoroutineScope(Dispatchers.Default) // use Default for test purposes
+
+    fun destroy() {
+        mainScope.cancel()
+    }
+
+    fun doSomething() {
+        // launch ten coroutines for a demo, each working for a different time
+        repeat(10) { i ->
+            mainScope.launch {
+                delay((i + 1) * 200L) // variable delay 200ms, 400ms, ... etc
+                println("Coroutine $i is done")
+            }
+        }
+    }
+
+    /*
+        As you can see, only the first two coroutines print a message and the others are cancelled
+        by a single invocation of job.cancel() in Activity.destroy().
+
+        Note, that Android has first-party support for coroutine scope in all entities with the lifecycle.
+        See the corresponding documentation : https://developer.android.com/topic/libraries/architecture/coroutines#lifecyclescope
+     */
 }

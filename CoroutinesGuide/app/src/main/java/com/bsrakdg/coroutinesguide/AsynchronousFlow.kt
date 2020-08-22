@@ -30,6 +30,11 @@ fun main() {
 
     // TODO Flow builders
     flowBuilders()
+
+    println("\n****************************\n")
+
+    // TODO Intermediate flow operators
+    intermediateFlowOperators()
 }
 
 fun representingMultipleValues() {
@@ -200,5 +205,87 @@ fun flowBuilders() {
         println("flowBuilders start")
 
         (1..3).asFlow().collect { value -> println(value) }
+    }
+}
+
+fun intermediateFlowOperators() {
+    /*
+        Flows can be transformed with operators, just as you would with collections and sequences.
+        Intermediate operators are applied to an upstream flow and return a downstream flow.
+        These operators are cold, just like flows are. A call to such an operator is not a suspending function itself.
+        It works quickly, returning the definition of a new transformed flow.
+
+        The basic operators have familiar names like map and filter.
+        The important difference to sequences is that blocks of code inside these operators can call suspending functions.
+
+        For example, a flow of incoming requests can be mapped to the results with the map operator,
+        even when performing a request is a long-running operation that is implemented by a suspending function:
+     */
+    println("intermediateFlowOperators start")
+
+    runBlocking {
+        (1..3).asFlow() // a flow of requests
+            .map { request -> performRequest(request) }
+            .collect { response -> println(response) }
+    }
+
+    println("\n--------------\n")
+
+    // It produces the following three lines, each line appearing after each second.
+
+    /*  TODO Transform operator
+        Among the flow transformation operators, the most general one is called transform.
+        It can be used to imitate simple transformations like map and filter, as well as implement
+        more complex transformations. Using the transform operator,
+        we can emit arbitrary values an arbitrary number of times.
+
+        For example, using transform we can emit a string before performing
+        a long-running asynchronous request and follow it with a response:
+    */
+    println("Transform operator start")
+
+    runBlocking {
+        (1..3).asFlow() // a flow of requests
+            .transform { request ->
+                emit("Making request $request")
+                emit(performRequest(request))
+            }
+            .collect { response -> println(response) }
+    }
+
+    println("\n--------------\n")
+
+    /* TODO Size-limiting operators
+       Size-limiting intermediate operators like take cancel the execution of the flow when
+       the corresponding limit is reached. Cancellation in coroutines is always performed by
+       throwing an exception, so that all the resource-management functions (like try { ... } finally { ... } blocks)
+       operate normally in case of cancellation:
+     */
+
+    println("Size-limiting operators start")
+
+    runBlocking {
+        numbers()
+            .take(2) // take only the first two
+            .collect { value -> println(value) }
+
+        // The output of this code clearly shows that the execution of the flow { ... } body in
+        // the numbers() function stopped after emitting the second number.
+    }
+}
+
+suspend fun performRequest(request: Int): String {
+    delay(1000) // imitate long-running asynchronous work
+    return "response $request"
+}
+
+fun numbers(): Flow<Int> = flow {
+    try {
+        emit(1)
+        emit(2)
+        println("This line will not execute")
+        emit(3)
+    } finally {
+        println("Finally in numbers")
     }
 }

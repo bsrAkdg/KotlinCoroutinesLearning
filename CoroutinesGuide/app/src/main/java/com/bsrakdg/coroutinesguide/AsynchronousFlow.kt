@@ -2,6 +2,7 @@ package com.bsrakdg.coroutinesguide
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlin.system.measureTimeMillis
 
 /** https://kotlinlang.org/docs/reference/coroutines/flow.html#asynchronous-flow
  *  A suspending function asynchronously returns a single value, but how can we return multiple
@@ -47,6 +48,11 @@ fun main() {
 
     // TODO Flow context
     flowContext()
+
+    println("\n****************************\n")
+
+    // TODO Buffering
+    buffering()
 }
 
 fun representingMultipleValues() {
@@ -365,7 +371,7 @@ fun flowContext() {
 
         So, by default, code in the flow { ... } builder runs in the context that is provided by
         a collector of the corresponding flow. For example, consider the implementation of a
-        flowContextSample function that prints the thread it is called on and emits three numbers:
+        flowContextSample function that prints the thread it is called on and emits three numbers.
      */
 
     runBlocking {
@@ -451,3 +457,123 @@ fun flowOnOperator(): Flow<Int> = flow {
         emit(i) // emit next value
     }
 }.flowOn(Dispatchers.Default) // RIGHT way to change context for CPU-consuming code in flow builder
+
+fun buffering() {
+    /*
+        Running different parts of a flow in different coroutines can be helpful from the standpoint
+        of the overall time it takes to collect the flow, especially when long-running asynchronous
+        operations are involved. For example, consider a case when the emission by a bufferingSample flow is slow,
+        taking 100 ms to produce an element; and collector is also slow, taking 300 ms to process an element.
+        Let's see how long it takes to collect such a flow with three numbers:
+     */
+
+    println("buffering start")
+
+    runBlocking {
+        val time = measureTimeMillis {
+            bufferingSample().collect { value ->
+                delay(300) // pretend we are processing it for 300 ms
+                println("Collected value : $value")
+            }
+        }
+        println("Collected in $time ms")
+    }
+
+    println("\n--------------\n")
+
+    /*
+        It produces something like this, with the whole collection taking around 1200 ms (three numbers, 400 ms for each).
+
+        We can use a buffer operator on a flow to run emitting code of the simple flow concurrently
+        with collecting code, as opposed to running them sequentially:
+     */
+
+    println("Buffer operator start  :")
+
+    runBlocking {
+        val time = measureTimeMillis {
+            bufferingSample()
+                .buffer() // buffer emissions, don't wait
+                .collect { value ->
+                    delay(300) // pretend we are processing it for 300 ms
+                    println("Collected value : $value")
+                }
+        }
+        println("Collected in $time ms")
+    }
+
+    /*
+        It produces the same numbers just faster, as we have effectively created a processing pipeline,
+        having to only wait 100 ms for the first number and then spending only 300 ms to process each number.
+        This way it takes around 1000 ms to run.
+
+        Note that the flowOn operator uses the same buffering mechanism when it has to change a CoroutineDispatcher,
+        but here we explicitly request buffering without changing the execution context.
+     */
+
+    println("\n--------------\n")
+
+    /* TODO 1. Conflation
+       When a flow represents partial results of the operation or operation status updates,
+       it may not be necessary to process each value, but instead, only most recent ones.
+       In this case, the conflate operator can be used to skip intermediate values when a collector
+       is too slow to process them. Building on the previous example:
+    */
+
+    println("Conflation start")
+
+    runBlocking {
+        val time = measureTimeMillis {
+            bufferingSample()
+                .conflate() // conflate emissions, don't process each one
+                .collect { value ->
+                    delay(300) // pretend we are processing it for 300 ms
+                    println(value)
+                }
+        }
+        println("Collected in $time ms")
+    }
+
+    /*
+        We see that while the first number was still being processed the second,
+        and third were already produced, so the second one was conflated and only
+        the most recent (the third one) was delivered to the collector.
+     */
+
+    println("\n--------------\n")
+
+    /* TODO 2. Processing the latest value
+       Conflation is one way to speed up processing when both the emitter and collector are slow.
+       It does it by dropping emitted values. The other way is to cancel a slow collector and restart
+       it every time a new value is emitted. There is a family of xxxLatest operators that perform
+       the same essential logic of a xxx operator, but cancel the code in their block on a new value.
+       Let's try changing conflate to collectLatest in the previous example:
+    */
+
+    println("Processing the latest value start")
+
+    runBlocking {
+        val time = measureTimeMillis {
+            bufferingSample()
+                .collectLatest { value -> // cancel & restart on the latest value
+                    println("Collecting $value")
+                    delay(300) // pretend we are processing it for 300 ms
+                    println("Done $value")
+                }
+        }
+        println("Collected in $time ms")
+    }
+
+    /*
+        Since the body of collectLatest takes 300 ms, but new values are emitted every 100 ms,
+        we see that the block is run on every value, but completes only for the last value.
+     */
+}
+
+fun bufferingSample(): Flow<Int> = flow {
+    for (i in 1..3) {
+        delay(100) // pretend we are asynchronously waiting 100 ms
+        println("Emiting value : $i")
+        emit(i) // emit next value
+    }
+}

@@ -53,6 +53,11 @@ fun main() {
 
     // TODO Buffering
     buffering()
+
+    println("\n****************************\n")
+
+    // TODO Composing multiple flows
+    composingMultipleFlows()
 }
 
 fun representingMultipleValues() {
@@ -575,5 +580,66 @@ fun bufferingSample(): Flow<Int> = flow {
         delay(100) // pretend we are asynchronously waiting 100 ms
         println("Emiting value : $i")
         emit(i) // emit next value
+    }
+}
+
+fun composingMultipleFlows() {
+
+    // There are lots of ways to compose multiple flows.
+
+    /* TODO 1. Zip
+       Just like the Sequence.zip extension function in the Kotlin standard library,
+       flows have a zip operator that combines the corresponding values of two flows:
+     */
+    println("Zip operator : ")
+
+    runBlocking {
+        val nums = (1..3).asFlow() // numbers 1..3
+        val strs = flowOf("one", "two", "three", "four") // strings
+        nums.zip(strs) { a, b -> "$a -> $b" } // compose a single string
+            .collect { println(it) } // collect and print
+    }
+
+    println("\n--------------\n")
+
+    /* TODO 2. Combine
+       When flow represents the most recent value of a variable or operation
+       (see also the related section on conflation), it might be needed to perform a computation
+       that depends on the most recent values of the corresponding flows and to recompute it whenever
+       any of the upstream flows emit a value. The corresponding family of operators is called combine.
+
+       For example, if the numbers in the previous example update every 300ms, but strings update every 400 ms,
+       then zipping them using the zip operator will still produce the same result,
+       albeit results that are printed every 400 ms:
+
+       We use a onEach intermediate operator in this example to delay each element and make the code
+       that emits sample flows more declarative and shorter.
+     */
+    println("Zip operator : ")
+
+    runBlocking {
+        val nums = (1..3).asFlow().onEach { delay(300) } // numbers 1..3 every 300 ms
+        val strs = flowOf("one", "two", "three", "four").onEach { delay(400) } // strings every 400 ms
+        val startTime = System.currentTimeMillis() // remember the start time
+        nums.zip(strs) { a, b -> "$a -> $b" } // compose a single string with "zip"
+            .collect { value -> // collect and print
+                println("$value at ${System.currentTimeMillis() - startTime} ms from start")
+            }
+    }
+
+    println("\n--------------\n")
+
+    // However, when using a combine operator here instead of a zip:
+
+    println("Combine operator : ")
+
+    runBlocking {
+        val nums = (1..3).asFlow().onEach { delay(300) } // numbers 1..3 every 300 ms
+        val strs = flowOf("one", "two", "three", "four").onEach { delay(400) } // strings every 400 ms
+        val startTime = System.currentTimeMillis() // remember the start time
+        nums.combine(strs) { a, b -> "$a -> $b" } // compose a single string with "combine"
+            .collect { value -> // collect and print
+                println("$value at ${System.currentTimeMillis() - startTime} ms from start")
+            }
     }
 }

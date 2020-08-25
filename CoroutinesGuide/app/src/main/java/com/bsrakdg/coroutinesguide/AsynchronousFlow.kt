@@ -63,6 +63,11 @@ fun main() {
 
     // TODO Flattening flows
     flatteningFlows()
+
+    println("\n****************************\n")
+
+    // TODO Flow exceptions
+    flowExceptions()
 }
 
 fun representingMultipleValues() {
@@ -739,3 +744,65 @@ fun requestFlow(i: Int): Flow<String> = flow {
     delay(500) // wait 500 ms
     emit("$i: Second")
 }
+
+fun flowExceptions() {
+    /*
+        Flow collection can complete with an exception when an emitter or code inside the operators
+        throw an exception. There are several ways to handle these exceptions.
+     */
+
+    // TODO 1. Collector try and catch
+    // A collector can use Kotlin's try/catch block to handle exceptions:
+
+    println("Collector try and catch")
+
+    runBlocking {
+        try {
+            simpleTryCatch().collect { value ->
+                println(value)
+                check(value <= 1) { "Collected $value" }
+            }
+        } catch (e: Throwable) {
+            println("Caught $e")
+        }
+    }
+
+    // This code successfully catches an exception in collect terminal operator and, as we see, no more values are emitted after that.
+
+    println("\n--------------\n")
+
+    /* TODO 2. Everything is caught
+       The previous example actually catches any exception happening in the emitter or in any intermediate or
+       terminal operators. For example, let's change the code so that emitted values are mapped to strings,
+       but the corresponding code produces an exception:
+    */
+
+    println("Everything is caught")
+
+    runBlocking {
+        try {
+            simpleEverythingCaught().collect { value -> println(value) }
+        } catch (e: Throwable) {
+            println("Caught $e")
+        }
+    }
+}
+
+fun simpleTryCatch(): Flow<Int> = flow {
+    for (i in 1..3) {
+        println("Emitting $i")
+        emit(i) // emit next value
+    }
+}
+
+fun simpleEverythingCaught(): Flow<String> =
+    flow {
+        for (i in 1..3) {
+            println("Emitting $i")
+            emit(i) // emit next value
+        }
+    }
+    .map { value ->
+        check(value <= 1) { "Crashed on $value" }
+        "string $value"
+    }

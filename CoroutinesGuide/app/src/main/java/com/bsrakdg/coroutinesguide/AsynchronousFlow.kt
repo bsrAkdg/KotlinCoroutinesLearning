@@ -58,6 +58,11 @@ fun main() {
 
     // TODO Composing multiple flows
     composingMultipleFlows()
+
+    println("\n****************************\n")
+
+    // TODO Flattening flows
+    flatteningFlows()
 }
 
 fun representingMultipleValues() {
@@ -619,7 +624,8 @@ fun composingMultipleFlows() {
 
     runBlocking {
         val nums = (1..3).asFlow().onEach { delay(300) } // numbers 1..3 every 300 ms
-        val strs = flowOf("one", "two", "three", "four").onEach { delay(400) } // strings every 400 ms
+        val strs =
+            flowOf("one", "two", "three", "four").onEach { delay(400) } // strings every 400 ms
         val startTime = System.currentTimeMillis() // remember the start time
         nums.zip(strs) { a, b -> "$a -> $b" } // compose a single string with "zip"
             .collect { value -> // collect and print
@@ -635,11 +641,101 @@ fun composingMultipleFlows() {
 
     runBlocking {
         val nums = (1..3).asFlow().onEach { delay(300) } // numbers 1..3 every 300 ms
-        val strs = flowOf("one", "two", "three", "four").onEach { delay(400) } // strings every 400 ms
+        val strs =
+            flowOf("one", "two", "three", "four").onEach { delay(400) } // strings every 400 ms
         val startTime = System.currentTimeMillis() // remember the start time
         nums.combine(strs) { a, b -> "$a -> $b" } // compose a single string with "combine"
             .collect { value -> // collect and print
                 println("$value at ${System.currentTimeMillis() - startTime} ms from start")
             }
     }
+}
+
+fun flatteningFlows() {
+    /*
+        Flows represent asynchronously received sequences of values, so it is quite easy to get
+        in a situation where each value triggers a request for another sequence of values.
+
+        For example, we can have the following function that returns a flow of two strings 500 ms apart.
+        Now if we have a flow of three integers and call requestFlow for each of them like this:
+
+        (1..3).asFlow().map { requestFlow(it) }
+
+        Then we end up with a flow of flows (Flow<Flow<String>>) that needs to be flattened into
+        a single flow for further processing. Collections and sequences have flatten and flatMap operators for this.
+        However, due to the asynchronous nature of flows they call for different modes of flattening,
+        as such, there is a family of flattening operators on flows.
+     */
+
+    /*  TODO 1. flatMapConcat
+        Concatenating mode is implemented by flatMapConcat and flattenConcat operators.
+        They are the most direct analogues of the corresponding sequence operators.
+        They wait for the inner flow to complete before starting to collect the next one as the following example shows:
+    */
+    println("flatMapConcat operator :")
+
+    runBlocking {
+        val startTime = System.currentTimeMillis() // remember the start time
+        (1..3).asFlow().onEach { delay(100) } // a number every 100 ms
+            .flatMapConcat { requestFlow(it) }
+            .collect { value -> // collect and print
+                println("$value at ${System.currentTimeMillis() - startTime} ms from start")
+            }
+    }
+
+    println("\n--------------\n")
+
+    /*  TODO 2. flatMapMerge
+        Another flattening mode is to concurrently collect all the incoming flows and merge their
+        values into a single flow so that values are emitted as soon as possible.
+        It is implemented by flatMapMerge and flattenMerge operators. They both accept an optional
+        concurrency parameter that limits the number of concurrent flows that are collected at
+        the same time (it is equal to DEFAULT_CONCURRENCY by default).
+    */
+    println("flatMapMerge operator :")
+
+    runBlocking {
+        val startTime = System.currentTimeMillis() // remember the start time
+        (1..3).asFlow().onEach { delay(200) } // a number every 100 ms
+            .flatMapMerge { requestFlow(it) }
+            .collect { value -> // collect and print
+                println("$value at ${System.currentTimeMillis() - startTime} ms from start")
+            }
+    }
+
+    /*
+        Note that the flatMapMerge calls its block of code ({ requestFlow(it) } in this example) sequentially,
+        but collects the resulting flows concurrently, it is the equivalent of performing a sequential
+        map { requestFlow(it) } first and then calling flattenMerge on the result.
+     */
+    println("\n--------------\n")
+
+    /*  TODO 3. flatMapLatest
+        In a similar way to the collectLatest operator, that was shown in "Processing the latest value" section,
+        there is the corresponding "Latest" flattening mode where a collection of the previous flow is
+        cancelled as soon as new flow is emitted. It is implemented by the flatMapLatest operator.
+    */
+    println("flatMapLatest operator :")
+
+    runBlocking {
+        val startTime = System.currentTimeMillis() // remember the start time
+        (1..3).asFlow().onEach { delay(100) } // a number every 100 ms
+            .flatMapLatest { requestFlow(it) }
+            .collect { value -> // collect and print
+                println("$value at ${System.currentTimeMillis() - startTime} ms from start")
+            }
+    }
+
+    /*
+        Note that flatMapLatest cancels all the code in its block ({ requestFlow(it) } in this example)
+        on a new value. It makes no difference in this particular example, because the call to requestFlow
+        itself is fast, not-suspending, and cannot be cancelled. However, it would show up if we were
+        to use suspending functions like delay in there.
+     */
+}
+
+fun requestFlow(i: Int): Flow<String> = flow {
+    emit("$i: First")
+    delay(500) // wait 500 ms
+    emit("$i: Second")
 }
